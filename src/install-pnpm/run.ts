@@ -51,10 +51,19 @@ async function readTarget(opts: {
   if (GITHUB_WORKSPACE) {
     try {
       const content = readFileSync(path.join(GITHUB_WORKSPACE, packageJsonFile), 'utf8');
-      ({ packageManager } = packageJsonFile.endsWith(".yaml")
+      let devEngines;
+      ({ packageManager, devEngines } = packageJsonFile.endsWith(".yaml")
         ? YAML.parse(content, { merge: true })
         : JSON.parse(content)
       )
+      const devEnginesPackageManager = Array.isArray(devEngines?.packageManager)
+        ? devEngines.packageManager.find((item: any) => item.name === "pnpm")?.version
+        : devEngines?.packageManager?.name === "pnpm"
+        ? devEngines.packageManager.version
+        : undefined;
+      if (typeof devEnginesPackageManager === 'string'){
+        packageManager = `pnpm@${devEnginesPackageManager}`
+      }
     } catch (error: unknown) {
       // Swallow error if package.json doesn't exist in root
       if (!util.types.isNativeError(error) || !('code' in error) || error.code !== 'ENOENT') throw error
